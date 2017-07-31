@@ -5,7 +5,7 @@ StringOrInt x = case x of
 
 getStringOrInt : (x : Bool) -> StringOrInt x
 getStringOrInt x = case x of
-                        True => 94
+                        True => ?xtruetype
                         False => "Ninety four"
 
 valToString : (x : Bool) -> StringOrInt x -> String

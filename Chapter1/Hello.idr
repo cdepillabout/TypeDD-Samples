@@ -1,4 +1,4 @@
 module Main
 
 main : IO ()
-main = putStrLn "Hello, Idris world!"
+main = let vee = "hello" in putStrLn ?greeting
