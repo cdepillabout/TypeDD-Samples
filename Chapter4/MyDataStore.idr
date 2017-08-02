@@ -88,3 +88,13 @@ doAction dataStore command =
 
 main : IO ()
 main = replWith initDataStore "Command: " doAction
+
+-- vectLen : {n : Nat} -> {a : Type} -> Vect n a -> Fin n
+-- vectLen {n=n} xs = case natToFin n (S n) of
+--         Nothing => ?what
+--         (Just x) => ?who
+
+-- lala : Nat -> (n : Nat) -> String
+-- lala _ _ = "hello"
+
+
