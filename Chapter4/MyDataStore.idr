@@ -94,7 +94,8 @@ main = replWith initDataStore "Command: " doAction
 --         Nothing => ?what
 --         (Just x) => ?who
 
+vectLen : {n : Nat} -> {a : Type} -> Vect n a -> Nat
+vectLen {n} xs = n
+
 -- lala : Nat -> (n : Nat) -> String
 -- lala _ _ = "hello"
-
-
