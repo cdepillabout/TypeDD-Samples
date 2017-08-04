@@ -15,6 +15,7 @@ SchemaType SInt = Int
 SchemaType (x .+. y) = (SchemaType x, SchemaType y)
 
 data Command : Schema -> Type where
+  SetSchema : (newSchema : Schema) -> Command schema
   Add : SchemaType schema -> Command schema
   Get : Integer -> Command schema
   Quit : Command schema
@@ -77,7 +78,15 @@ parseGet val = do
     False => Nothing
     True => Just $ cast val
 
+parseSchema : List String -> Maybe Schema
+parseSchema ["String"] = Just SString
+parseSchema ["Int"] = Just SInt
+parseSchema ("String" :: xs) = map (SString .+.) $ parseSchema xs
+parseSchema ("Int" :: xs) = map (SInt .+.) $ parseSchema xs
+parseSchema _ = Nothing
+
 parseCommand : (schema : Schema) -> String -> String -> Maybe (Command schema)
+parseCommand schema' "schema" str = map SetSchema . parseSchema $ words str
 parseCommand schema' "add" str = map Add $ parseAdd schema' str
 parseCommand schema' "get" val = map Get $ parseGet val
 parseCommand schema' "quit" _ = Just Quit
@@ -93,6 +102,8 @@ processInput
 processInput dataStore@(MkData schema' size' items') input =
   case parse schema' input of
     Nothing => Just ("Invalid command\n", dataStore)
+    Just (SetSchema newSchema) =>
+      Just ("updated schema and reset datastore\n", MkData newSchema _ [])
     Just (Add item) =>
       let newStore = addToStore (MkData schema' size' items') item
       in Just ("ID " ++ show (size dataStore) ++ "\n", newStore)
