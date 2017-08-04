@@ -20,19 +20,20 @@ data Command : Schema -> Type where
   Get : Integer -> Command schema
   Quit : Command schema
 
-record DataStore where
+record DataStore (schema : Schema) where
        constructor MkData
-       schema : Schema
        size : Nat
        items : Vect size (SchemaType schema)
 
 addToStore
-  : (dataStore : DataStore) -> SchemaType (schema dataStore) -> DataStore
-addToStore (MkData schema' size' store') newitem =
-  MkData schema' _ (addToData store')
+  : (dataStore : DataStore schema) ->
+    SchemaType schema ->
+    DataStore schema
+addToStore {schema} (MkData size' store') newitem =
+  MkData _ (addToData store')
   where
     addToData
-      : Vect size' (SchemaType schema') -> Vect (size' + 1) (SchemaType schema')
+      : Vect size' (SchemaType schema) -> Vect (size' + 1) (SchemaType schema)
     addToData xs = xs ++ [newitem]
 
 display : SchemaType schema' -> String
@@ -40,9 +41,11 @@ display {schema' = SString} x = "\"" ++ x ++ "\""
 display {schema' = SInt} x = cast x
 display {schema' = (_ .+. _)} (a, b) = display a ++ " " ++ display b
 
-getEntry : (pos : Integer) -> (store : DataStore) ->
-           Maybe (String, DataStore)
-getEntry pos dataStore@(MkData schema' size' store') =
+getEntry
+  : (pos : Integer) ->
+    (store : DataStore schema) ->
+    Maybe (String, DataStore schema)
+getEntry pos dataStore@(MkData size' store') =
   case integerToFin pos size' of
     Nothing => Just ("Out of range\n", dataStore)
     Just id' => Just (display (index id' store') ++ "\n", dataStore)
@@ -98,17 +101,22 @@ parse schema' input =
     (cmd, args) => parseCommand schema' cmd (ltrim args)
 
 processInput
-  : (dataStore : DataStore) -> String -> Maybe (String, DataStore)
-processInput dataStore@(MkData schema' size' items') input =
-  case parse schema' input of
-    Nothing => Just ("Invalid command\n", dataStore)
+  : (schema : Schema ** DataStore schema) ->
+    String ->
+    Maybe (String, (newschema ** DataStore newschema))
+processInput (schema ** (MkData size' items')) input =
+  case parse schema input of
+    Nothing => Just ("Invalid command\n", (_ ** MkData size' items'))
     Just (SetSchema newSchema) =>
-      Just ("updated schema and reset datastore\n", MkData newSchema _ [])
+      Just ("updated schema and reset datastore\n", (newSchema ** MkData _ []))
     Just (Add item) =>
-      let newStore = addToStore (MkData schema' size' items') item
-      in Just ("ID " ++ show (size dataStore) ++ "\n", newStore)
-    Just (Get pos) => getEntry pos dataStore
+      let newStore = addToStore (MkData size' items') item
+          msg = "ID " ++ show (size newStore) ++ "\n"
+      in Just (msg, (schema ** newStore))
+    Just (Get pos) => do
+      (msg, newDataStore) <- getEntry pos (MkData size' items')
+      Just (msg, (_ ** newDataStore))
     Just Quit => Nothing
 
 main : IO ()
-main = replWith (MkData SString _ []) "Command: " processInput
+main = replWith (SString ** MkData _ []) "Command: " processInput
