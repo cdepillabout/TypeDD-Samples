@@ -94,7 +94,7 @@ reverse {n = (S k)} (x :: xs) =
   let lala = app (reverse xs) [x]
   in lalaVect lala plusIsSucc
 
-mycong : {f : x -> x} -> a = b -> f a = f b
+mycong : {f : a -> b} -> x = y -> f x = f y
 mycong Refl = Refl
 
 plusIsSucc2 : plus k 1 = S k
@@ -113,5 +113,23 @@ reverse2 {n = (S k)} (x :: xs) =
   let reversedList = app (reverse xs) [x]
   in vectLenTrans plusIsSucc2 reversedList
 
+same_cons : {xs : List a} -> {ys : List a} -> xs = ys -> x :: xs = x :: ys
+same_cons {xs = ys} {ys = ys} Refl = Refl
+
+same_lists
+  : {xs : List a} -> {ys : List a} -> x = y -> xs = ys -> x :: xs = y :: ys
+same_lists {xs = ys} {ys = ys} Refl Refl = Refl
+
+data ThreeEq : {a : Type} -> {b : Type} -> {c : Type} -> (x : a) -> (y : b) -> (z : d) -> Type where
+  Same3 : ThreeEq x x x
+
+allSameS : (x, y, z : Nat) -> ThreeEq x y z -> ThreeEq (S x) (S y) (S z)
+allSameS z z z Same3 = Same3
+
+lalaReverse : {a : Type} -> {n : Nat} -> {x : a} -> {y : Vect n a} -> reverse2 (x :: y) = (app (reverse2 y) [x])
+lalaReverse {x = x} {y = []} = Refl
+lalaReverse {n = S n} {x = x} {y = (y :: ys)} = ?poop -- case lalaReverse {y
+
 reverseTest : reverse2 (reverse2 v) = v
-reverseTest {v} = ?reverseTest_rhs
+reverseTest {v = []} = Refl
+reverseTest {v = (x :: y)} = ?reverseTest_rhs_2
