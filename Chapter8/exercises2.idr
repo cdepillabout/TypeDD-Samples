@@ -21,7 +21,7 @@ myReverse xs = reverse' [] xs
     reverse' {n = Z} acc [] = acc
     reverse' {n = S n} acc (x :: xs) = reverse_Proof (reverse' (x :: acc) xs)
 
-reverseVect : {n : Nat} -> Vect n a -> Vect n a
+total reverseVect : {n : Nat} -> Vect n a -> Vect n a
 reverseVect {n = Z} [] = []
 reverseVect {n = S n} (x :: xs) =
   rewrite plusCommutative 1 n
@@ -30,15 +30,33 @@ reverseVect {n = S n} (x :: xs) =
 reverseNilIsNil : reverseVect [] = []
 reverseNilIsNil = Refl
 
-reverseVectAppend : {n : Nat} -> (x : a) -> (xs : Vect n a) -> reverseVect (reverseVect xs ++ [x]) = (x :: xs)
+reverseTryTwo
+  : (x : a) ->
+    (xs : Vect n a) ->
+    reverseVect xs = ys ->
+    reverseVect (xs ++ [x]) = reverseVect (x :: ys)
+reverseTryTwo _ [] Refl = Refl
+reverseTryTwo x (xshead :: xstail) Refl =
+  let rec = reverseTryTwo xshead xstail ?haahah
+  -- in rewrite sym rec
+  in ?hahahahahaha
+
+reverseVectAppend
+  : {n : Nat} ->
+    (x : a) ->
+    (xs : Vect n a) ->
+    reverseVect (reverseVect xs ++ [x]) = (x :: xs)
 reverseVectAppend {n = Z} x [] = Refl
 reverseVectAppend {n = (S k)} x (y :: ys) =
-  let ind = reverseVectAppend y ys
-  in rewrite plusCommutative 1 k
-  -- in rewrite ind
-  in ?ajaha
+  let rec = reverseVectAppend y ys
+  in rewrite sym rec
+  -- in rewrite plusCommutative k 1
+  in ?hello
 
-reverseReverseIsId : {n : Nat} -> (vect : Vect n a) -> reverseVect (reverseVect vect) = vect
+reverseReverseIsId
+  : {n : Nat} ->
+    (vect : Vect n a) ->
+    reverseVect (reverseVect vect) = vect
 reverseReverseIsId {n = Z} [] = Refl
 reverseReverseIsId {n = (S k)} (x :: xs) =
   let lala = reverseVectAppend x xs
