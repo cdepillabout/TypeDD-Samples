@@ -81,6 +81,15 @@ app : Vect n a -> Vect m a -> Vect (n + m) a
 app [] y = y
 app (x :: z) y = x :: app z y
 
+appEmptyLeft : {xs : Vect n a} -> app [] xs = xs
+appEmptyLeft {xs} = Refl
+
+appEmptyRight : {xs : Vect n a} -> xs = app xs []
+appEmptyRight {xs = []} = Refl
+appEmptyRight {xs = (x :: y)} = ?idunno
+  -- case appEmptyRight {xs=y} of
+  --   Refl => ?asefasef
+
 plusIsSucc : {k : Nat} -> EqNat2 (plus k 1) (S k)
 plusIsSucc {k = Z} = Same2
 plusIsSucc {k = (S k)} = plusOkay plusIsSucc
@@ -96,6 +105,10 @@ reverse {n = (S k)} (x :: xs) =
 
 mycong : {f : a -> b} -> x = y -> f x = f y
 mycong Refl = Refl
+
+plusZeroIsSame : {k : Nat} -> k + 0 = k
+plusZeroIsSame {k = Z} = Refl
+plusZeroIsSame {k = (S k)} = cong plusZeroIsSame
 
 plusIsSucc2 : plus k 1 = S k
 plusIsSucc2 {k = Z} = Refl
@@ -128,7 +141,15 @@ allSameS z z z Same3 = Same3
 
 lalaReverse : {a : Type} -> {n : Nat} -> {x : a} -> {y : Vect n a} -> reverse2 (x :: y) = (app (reverse2 y) [x])
 lalaReverse {x = x} {y = []} = Refl
-lalaReverse {n = S n} {x = x} {y = (y :: ys)} = ?poop -- case lalaReverse {y
+lalaReverse {n = S n} {x = x} {y = (y :: ys)} = ?gagaga
+  -- case lalaReverse {x = y} {y = ys} of
+  --   Refl => ?aesfaefg
+
+lalaReverseTryTwo
+  : {x : a} -> {y : a} -> {rest : Vect n a} ->
+    reverse2 (y :: rest) = app (reverse2 rest) [y] ->
+    reverse2 (x :: y :: rest) = app (reverse2 rest) [y,x]
+lalaReverseTryTwo {x} {y} {rest} prf = ?lalaReverseTryTwo_rhs
 
 reverseTest : reverse2 (reverse2 v) = v
 reverseTest {v = []} = Refl
