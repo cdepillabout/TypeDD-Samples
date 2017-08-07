@@ -154,3 +154,33 @@ lalaReverseTryTwo {x} {y} {rest} prf = ?lalaReverseTryTwo_rhs
 reverseTest : reverse2 (reverse2 v) = v
 reverseTest {v = []} = Refl
 reverseTest {v = (x :: y)} = ?reverseTest_rhs_2
+
+plus0K : (k : Nat) -> 0 + k = k
+plus0K k = Refl
+
+plusK0 : (k : Nat) -> k + 0 = k
+plusK0 Z = Refl
+plusK0 (S k) =
+  rewrite plusK0 k
+  in Refl
+
+plusTakeOutS : (left : Nat) -> (right : Nat) -> S (left + right) = left + S right
+plusTakeOutS Z right = Refl
+plusTakeOutS (S k) right =
+  let ind = plusTakeOutS k right
+  in rewrite ind
+  in Refl
+
+plusWhat : (left : Nat) -> (right : Nat) -> left + (S right) = (S left) + right
+plusWhat Z right = Refl
+plusWhat (S left) right =
+  let ind = plusWhat left right
+  in rewrite ind
+  in Refl
+
+plusCommutative' : (left : Nat) -> (right : Nat) -> left + right = right + left
+plusCommutative' Z right = rewrite plusK0 right in Refl
+plusCommutative' (S left) right =
+  let ind = plusCommutative' left right in
+  rewrite ind in
+    plusTakeOutS right left
