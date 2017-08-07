@@ -139,11 +139,19 @@ data ThreeEq : {a : Type} -> {b : Type} -> {c : Type} -> (x : a) -> (y : b) -> (
 allSameS : (x, y, z : Nat) -> ThreeEq x y z -> ThreeEq (S x) (S y) (S z)
 allSameS z z z Same3 = Same3
 
-lalaReverse : {a : Type} -> {n : Nat} -> {x : a} -> {y : Vect n a} -> reverse2 (x :: y) = (app (reverse2 y) [x])
-lalaReverse {x = x} {y = []} = Refl
-lalaReverse {n = S n} {x = x} {y = (y :: ys)} = ?gagaga
-  -- case lalaReverse {x = y} {y = ys} of
-  --   Refl => ?aesfaefg
+flipEq : x = y -> y = x
+flipEq Refl = Refl
+
+lalaReverse : (x : a) -> (y : Vect n a) -> reverse2 (x :: y) = (app (reverse2 y) [x])
+lalaReverse x [] = Refl
+lalaReverse x (y :: ys) =
+  let ind = lalaReverse y ys
+  in rewrite ind
+  in ?ajaja
+  
+kaka : (haha : Vect n a) -> lalaVect haha plusIsSucc = haha
+kaka [] = ?kaka_rhs_3
+kaka (x :: y) = ?kaka_rhs_2
 
 lalaReverseTryTwo
   : {x : a} -> {y : a} -> {rest : Vect n a} ->
