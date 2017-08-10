@@ -64,7 +64,7 @@ isOrderedVect {n = S m} (x :: xs) =
   case isOrderedVect xs of
     (Yes OrderedVectNil) => Yes $ OrderedVectCons x OrderedVectNil LessThanNil
     (Yes (OrderedVectCons item orderedVect prf)) => ?isOrderedVect_rhs_4
-    (No contra) => ?ha0wa0feaf
+    (No contra) => ?fha0fafafafhafahseflkahsefase
 
 data MyElem : (x : a) -> (vect : Vect n a) -> Type where
   MyHere : MyElem x (x :: vs)
@@ -119,7 +119,7 @@ data InOrderExcluding : {a : Type} -> (ex : a) -> (origVect : Vect n a) -> (newV
     : InOrderExcluding ex origVect newVect ->
       InOrderExcluding ex (ex :: origVect) newVect
   InOrder
-    : (x = ex -> Void) ->
+    : (contra : x = ex -> Void) ->
       InOrderExcluding ex origVect newVect ->
       InOrderExcluding ex (x :: origVect) (x :: newVect)
 
@@ -129,70 +129,96 @@ inorderExample1 = InOrderExcludingNil
 inorderExample2 : InOrderExcluding 3 [3] []
 inorderExample2 = InOrderSkipVal InOrderExcludingNil
 
+feafafesfa : (1 = 3) -> Void
+feafafesfa Refl impossible
+
 inorderExample3 : InOrderExcluding 3 [1,3,10] [1,10]
-inorderExample3 = InOrder ?ahahha 
+inorderExample3 = InOrder feafafesfa (InOrderSkipVal (InOrder (\Refl impossible) InOrderExcludingNil))
 
--- newCantContainEx : InOrderExcluding ex orig (ex :: new) -> Void
--- newCantContainEx (InOrderSkipVal next) = ?newCantContainEx_rhs_1
--- newCantContainEx (InOrder next) = ?newCantContainEx_rhs_2
+newCantContainEx : InOrderExcluding ex orig (ex :: new) -> Void
+newCantContainEx (InOrderSkipVal next) = newCantContainEx next
+newCantContainEx (InOrder f x) = f Refl
 
--- origEmptyNewNonEmptyImpossible : InOrderExcluding ex [] (x :: xs) -> Void
--- origEmptyNewNonEmptyImpossible InOrderExcludingNil impossible
--- origEmptyNewNonEmptyImpossible (InOrderSkipVal _) impossible
--- origEmptyNewNonEmptyImpossible (InOrder _) impossible
+origEmptyNewNonEmptyImpossible : InOrderExcluding ex [] (x :: xs) -> Void
+origEmptyNewNonEmptyImpossible InOrderExcludingNil impossible
+origEmptyNewNonEmptyImpossible (InOrderSkipVal _) impossible
+origEmptyNewNonEmptyImpossible (InOrder _ _) impossible
 
--- changeSomething : (ex = x) -> InOrderExcluding x xs [] -> InOrderExcluding ex xs []
--- changeSomething prf e = rewrite prf in e
+changeSomething : (ex = x) -> InOrderExcluding x xs [] -> InOrderExcluding ex xs []
+changeSomething prf e = rewrite prf in e
 
+total nonEmptyOrigEmptyNewNotInOrder : (contra : (ex = x) -> Void) -> InOrderExcluding ex [x] [] -> Void
+nonEmptyOrigEmptyNewNotInOrder contra (InOrderSkipVal _) = contra Refl
 
--- nonEmptyOrigEmptyNewNotInOrder : (contra : (ex = x) -> Void) -> InOrderExcluding ex [x] [] -> Void
--- nonEmptyOrigEmptyNewNotInOrder contra (InOrderSkipVal _) = contra Refl
+total cantBeEmptyWithNonEqVal
+  : (contra : (ex = x) -> Void) ->
+    (InOrderExcluding ex origVect []) ->
+    InOrderExcluding ex (x :: (ex :: origVect)) [] ->
+    Void
+cantBeEmptyWithNonEqVal contra InOrderExcludingNil (InOrderSkipVal _) = contra Refl
+cantBeEmptyWithNonEqVal contra (InOrderSkipVal _) (InOrderSkipVal _) = contra Refl
 
--- cantBeEmptyWithNonEqVal
---   : (contra : (ex = x) -> Void) ->
---     (InOrderExcluding ex origVect []) ->
---     InOrderExcluding ex (x :: (ex :: origVect)) [] ->
---     Void
--- cantBeEmptyWithNonEqVal contra InOrderExcludingNil (InOrderSkipVal _) = contra Refl
--- cantBeEmptyWithNonEqVal contra (InOrderSkipVal _) (InOrderSkipVal _) = contra Refl
+symNeg : (x = y -> Void) -> y = x -> Void
+symNeg f prf = f (sym prf)
 
+total isInOrderExcluding
+  : DecEq a => (ex : a) ->
+    (origVect : Vect n a) ->
+    (newVect : Vect m a) ->
+    Dec (InOrderExcluding ex origVect newVect)
+isInOrderExcluding ex [] [] = Yes InOrderExcludingNil
+isInOrderExcluding ex [] (x :: xs) = No origEmptyNewNonEmptyImpossible
+isInOrderExcluding ex (x :: xs) [] =
+  case decEq ex x of
+    (Yes prf1) =>
+      rewrite prf1 in
+      case isInOrderExcluding ex xs [] of
+        (Yes prf2) => Yes $ (InOrderSkipVal (rewrite sym prf1 in prf2))
+        (No contra) => No $ \prf2 =>
+          case prf2 of
+            (InOrderSkipVal something) => contra (changeSomething prf1 something)
+    (No contra) =>
+      case isInOrderExcluding ex xs [] of
+        (Yes InOrderExcludingNil) => No $ nonEmptyOrigEmptyNewNotInOrder contra
+        (Yes (InOrderSkipVal next)) => No $ cantBeEmptyWithNonEqVal contra next
+        (No _) => No $ \prf2 =>
+          case prf2 of
+          (InOrderSkipVal x) => contra Refl
+isInOrderExcluding ex (x :: xs) (y :: ys) =
+  case decEq ex x of
+    (Yes Refl) =>
+      case isInOrderExcluding ex xs (y :: ys) of
+        (Yes prf2) => Yes $ InOrderSkipVal prf2
+        (No contra) => No $ \prf2 =>
+          case prf2 of
+            (InOrderSkipVal next) => contra next
+            (InOrder contra2 _) => contra2 Refl
+    (No contra) =>
+      case (decEq x y, isInOrderExcluding ex xs ys) of
+        (Yes Refl, Yes prf2) => Yes $ InOrder (symNeg contra) prf2
+        (Yes Refl, No contra2) => No $ \prf =>
+          case prf of
+            (InOrderSkipVal next) => newCantContainEx next
+            (InOrder _ next) => contra2 next
+        (No contra2, _) => No $ \prf =>
+          case prf of
+            (InOrderSkipVal _) => contra Refl
+            (InOrder _ _) => contra2 Refl
 
--- hahaha0fa
---   : (contra : InOrderExcluding ex xs (ex :: ys) -> Void) ->
---     InOrderExcluding ex xs ys ->
---     InOrderExcluding ex xs (ex :: ys) ->
---     Void
--- hahaha0fa contra (InOrderSkipVal y) (InOrderSkipVal x) = ?hahaha0fa_rhs_3
--- hahaha0fa contra (InOrder y) (InOrderSkipVal x) = ?hahaha0fa_rhs_4
--- hahaha0fa contra (InOrderSkipVal y) (InOrder x) = ?hahaha0fa_rhs_1
--- hahaha0fa contra (InOrder y) (InOrder x) = ?hahaha0fa_rhs_5
+-- NotElemAndInOrder : (excludeVal : a) -> (oldVect : Vect oldLen a) -> (newVect : Vect newLen a) -> (Elem excludeVal newVect -> Void, InOrderExcluding excludeVal oldVect newVect)
+NotElemAndInOrder : (excludeVal : a) -> (oldVect : Vect oldLen a) -> (newVect : Vect newLen a) -> Type
+NotElemAndInOrder excludeVal oldVect newVect = (Elem excludeVal newVect -> Void, InOrderExcluding excludeVal oldVect newVect)
 
--- total isInOrderExcluding : DecEq a => (ex : a) -> (origVect : Vect n a) -> (newVect : Vect m a) -> Dec (InOrderExcluding ex origVect newVect)
--- isInOrderExcluding ex [] [] = Yes InOrderExcludingNil
--- isInOrderExcluding ex [] (x :: xs) = No origEmptyNewNonEmptyImpossible
--- isInOrderExcluding ex (x :: xs) [] =
---   case decEq ex x of
---     (Yes prf1) =>
---       rewrite prf1 in
---       case isInOrderExcluding ex xs [] of
---         (Yes prf2) => Yes $ (InOrderSkipVal (rewrite sym prf1 in prf2))
---         (No contra) => No $ \prf2 =>
---           case prf2 of
---             (InOrderSkipVal something) => contra (changeSomething prf1 something)
---     (No contra) =>
---       case isInOrderExcluding ex xs [] of
---         (Yes InOrderExcludingNil) => No $ nonEmptyOrigEmptyNewNotInOrder contra
---         (Yes (InOrderSkipVal next)) => No $ cantBeEmptyWithNonEqVal contra next
---         (No _) => No $ \prf2 =>
---           case prf2 of
---           (InOrderSkipVal x) => contra Refl
--- isInOrderExcluding ex (x :: xs) (y :: ys) =
---   case decEq ex x of
---     (Yes Refl) =>
---       case isInOrderExcluding ex xs (y :: ys) of
---         (Yes prf2) => Yes $ ?ha0efyaf -- rewrite sym prf1 in InOrderSkipVal prf2
---         (No contra) => No $ \prf2 =>
---           case prf2 of
---             (InOrderSkipVal next) => contra next
---             (InOrder next) => ?bababababa -- contra (hahaha0fa contra next)
---     (No contra) => ?afehfasfe_2fefaefasef
+total removeAll'
+  : DecEq a =>
+    (value : a) ->
+    (vect : Vect n a) ->
+    (newLen : Nat ** (newVect : Vect newLen a ** NotElemAndInOrder value vect newVect)) -- , (InOrderExcluding value vect nextVect)))
+removeAll' {n = Z} value [] = (0 ** [] ** (absurd, InOrderExcludingNil))
+removeAll' {n = (S len)} value (x :: xs) =
+  case removeAll' value xs of
+    (resLen ** resVect ** (prfEmpty, prfInOrder)) =>
+      case decEq value x of
+        (Yes Refl) => (resLen ** resVect ** (prfEmpty, InOrderSkipVal prfInOrder))
+        (No contra) =>
+          (S resLen ** x :: resVect ** (notElemHeadOrTail contra prfEmpty, InOrder (symNeg contra) prfInOrder))
