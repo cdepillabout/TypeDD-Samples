@@ -1,6 +1,8 @@
 
 module Main
 
+import Data.List.Views
+import Data.Nat.Views
 import Data.Vect
 import Data.Vect.Views
 
@@ -39,3 +41,20 @@ mergeSort xs with (splitRec xs)
     Main.merge (mergeSort ys | lrec) (mergeSort zs | rrec)
 
 
+total
+toBinary : (n : Nat) -> String
+toBinary n with (halfRec n)
+  toBinary Z | HalfRecZ = "0"
+  toBinary (Z + Z) | (HalfRecEven rec) = "0"
+  toBinary ((S n) + (S n)) | (HalfRecEven rec) = toBinary (S n) | rec ++ "0"
+  toBinary (S (Z + Z)) | (HalfRecOdd rec) = "1"
+  toBinary (S (S n + S n)) | (HalfRecOdd rec) = toBinary (S n) | rec ++ "1"
+
+palindrome : String -> Bool
+palindrome str = go $ unpack str
+  where
+    go : List Char -> Bool
+    go xs with (vList xs)
+      go [] | VNil = True
+      go [_] | VOne = True
+      go (x :: (ys ++ [y])) | (VCons rec) = if x == y then go ys | rec else False
