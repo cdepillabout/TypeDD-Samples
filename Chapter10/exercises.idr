@@ -1,6 +1,8 @@
 
 module Main
 
+import Data.List.Views
+
 data ListLast : List a -> Type where
   Empty : ListLast []
   NonEmpty : (xs : List a) -> (x : a) -> ListLast (xs ++ [x])
@@ -123,44 +125,35 @@ halves' xs with (takeN (length xs `div` 2) xs)
 
 
 
-data SnocList : List a -> Type where
-  SLEmpty : SnocList []
-  Snoc : (rec : SnocList xs) -> SnocList (xs ++ [x])
-
--- total
--- snocList : (ls : List a) -> SnocList ls
--- snocList [] = SLEmpty
--- snocList (l :: ls) with (snocList ls)
---   snocList (l :: []) | SLEmpty = Snoc SLEmpty
---   snocList (l :: (ms ++ [m])) | ava@(Snoc rec {x = m} {xs = ms}) =
---     let papa = Snoc ava
---     in ?hfeafes
+data MySnocList : List a -> Type where
+  SLEmpty : MySnocList []
+  Snoc : (rec : MySnocList xs) -> MySnocList (xs ++ [x])
 
 total
 snocListHelper
   : {a : Type} ->
-    (snoc : SnocList input) ->
+    (snoc : MySnocList input) ->
     (rest : List a) ->
-    SnocList (input ++ rest)
+    MySnocList (input ++ rest)
 snocListHelper {input = input} snoc [] =
-  -- the type I need to return is SnocList (input ++ [])
-  let _ = the (SnocList input) snoc in
+  -- the type I need to return is MySnocList (input ++ [])
+  let _ = the (MySnocList input) snoc in
   -- appendNilRightNeutral : (l : List a) -> l ++ [] = l
   let _ = the (input ++ [] = input) (appendNilRightNeutral input) in
   rewrite appendNilRightNeutral input in
-  -- after the rewrite, type I need to return is SnocList input
+  -- after the rewrite, type I need to return is MySnocList input
   snoc
 snocListHelper {input = input} snoc (x :: xs) =
-  -- the type I need to return is SnocList (input ++ (x :: xs))
+  -- the type I need to return is MySnocList (input ++ (x :: xs))
   let rec = snocListHelper (Snoc snoc {x}) xs in
-  let _ = the (SnocList ((input ++ [x]) ++ xs)) rec in
+  let _ = the (MySnocList ((input ++ [x]) ++ xs)) rec in
   -- appendAssociative
   --   : (l : List a) -> (c : List a) -> (r : List a) -> l ++ (c ++ r) = (l ++ c) ++ r
   let rewriteRule = appendAssociative input [x] xs in
   let _ = the (input ++ ([x] ++ xs) = (input ++ [x]) ++ xs) rewriteRule in
   let _ = the (input ++ (x :: xs) = (input ++ [x]) ++ xs) rewriteRule in
   rewrite rewriteRule in
-  -- after the rewrite, the type I need to return is SnocList ((input ++ [x]) ++ xs)
+  -- after the rewrite, the type I need to return is MySnocList ((input ++ [x]) ++ xs)
   rec
 
 data Proxy : a -> Type where
@@ -171,18 +164,72 @@ testtest [] = MkProxy {a = []}
 testtest (x :: xs) = MkProxy {a = ([x] ++ xs)}
 
 total
-snocList : (xs : List a) -> SnocList xs
-snocList xs = snocListHelper SLEmpty xs
+mySnocList : (xs : List a) -> MySnocList xs
+mySnocList xs = snocListHelper SLEmpty xs
 
 total
-reverseSnoc : {xs : List a} -> SnocList xs -> List a
+reverseSnoc : {xs : List a} -> MySnocList xs -> List a
 reverseSnoc SLEmpty = []
 reverseSnoc (Snoc rec {x}) = x :: reverseSnoc rec
 
 total
-myReverseHelper : (xs : List a) -> SnocList xs -> List a
+myReverseHelper : (xs : List a) -> MySnocList xs -> List a
 myReverseHelper [] SLEmpty = []
 myReverseHelper (ys ++ [x]) (Snoc rec) = x :: myReverseHelper ys rec
 
 myReverse' : List a -> List a
-myReverse' xs = myReverseHelper xs (snocList xs)
+myReverse' xs = myReverseHelper xs (Main.mySnocList xs)
+
+snocListHelper' : (MySnocList input) -> (rest : List a) -> MySnocList (input ++ rest)
+snocListHelper' {input} snoc [] = rewrite appendNilRightNeutral input in snoc
+snocListHelper' {input} snoc (x :: xs) =
+  let newSnoc = Snoc snoc {x} in
+  let rec = snocListHelper' newSnoc xs in
+  let rewriteRule = appendAssociative input [x] xs in
+  -- need to return a value of type MySnocList (input ++ x :: xs)
+  rewrite rewriteRule in
+  -- now, need to return a value of type MySnocList ((input ++ [x]) ++ xs)
+  rec
+
+total
+myReverse'' : List a -> List a
+myReverse'' xs with (Main.mySnocList xs)
+  myReverse'' [] | SLEmpty = []
+  myReverse'' (ys ++ [x]) | (Snoc rec) = x :: (myReverse'' ys | rec)
+
+total
+myfoldl : (acc -> Int -> acc) -> acc -> List Int  -> acc
+myfoldl f acc xs = foldr (\elem, ff, acc' => ff $ f acc' elem) id xs acc
+
+total
+isSuffix : Eq a => List a -> List a -> Bool
+isSuffix xs ys with (Main.mySnocList xs)
+  isSuffix [] ys | SLEmpty = True
+  isSuffix (zs ++ [x]) ys | (Snoc rec) with (Main.mySnocList ys)
+    isSuffix (zs ++ [x]) [] | (Snoc rec) | SLEmpty = False
+    isSuffix (zs ++ [x]) (xs ++ [y]) | (Snoc rec) | (Snoc z) =
+      x == y && isSuffix zs xs | rec | z
+
+
+total
+mergeSort' : Ord a => List a -> List a
+mergeSort' xs with (splitRec xs)
+  mergeSort' [] | SplitRecNil = []
+  mergeSort' [x] | SplitRecOne = [x]
+  mergeSort' (lefts ++ rights) | (SplitRecPair lrec rrec) =
+    Main.merge (mergeSort' lefts | lrec) (mergeSort' rights | rrec)
+
+
+equalSuffixHelper : Eq a => (accum : List a) -> (list1 : List a) -> (list2: List a) -> List a
+equalSuffixHelper accum list1 list2 with (snocList list1)
+  equalSuffixHelper accum [] _ | Empty = accum
+  equalSuffixHelper accum (xs ++ [x]) list2 | (Snoc rec) with (snocList list2)
+    equalSuffixHelper accum (xs ++ [x]) [] | (Snoc rec) | Empty = accum
+    equalSuffixHelper accum (xs ++ [x]) (ys ++ [y]) | (Snoc rec) | (Snoc z) =
+      if x == y
+        then equalSuffixHelper (x :: accum) xs ys | rec | z
+        else accum
+
+equalSuffix : Eq a => List a -> List a -> List a
+equalSuffix xs ys = equalSuffixHelper [] xs ys
+
