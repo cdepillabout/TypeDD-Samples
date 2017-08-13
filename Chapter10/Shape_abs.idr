@@ -28,3 +28,20 @@ area (Rectangle length height) = rectangle_area length height
 area (Circle radius) = pi * radius * radius
 
 
+public export
+data ShapeView : (shape : Shape) -> Type where
+  TriangleView : ShapeView (triangle base height)
+  RectangleView : ShapeView (rectangle width height)
+  CircleView : ShapeView (circle radius)
+
+shapeView : (shape : Shape) -> ShapeView shape
+shapeView (Triangle x y) = TriangleView
+shapeView (Rectangle x y) = RectangleView
+shapeView (Circle x) = CircleView
+
+areaView : (shape : Shape) -> Double
+areaView shape with (shapeView shape)
+  areaView (triangle base height) | TriangleView = (base * height) / 2
+  areaView (rectangle width height) | RectangleView = width * height
+  areaView (circle radius) | CircleView = pi * radius * radius
+
