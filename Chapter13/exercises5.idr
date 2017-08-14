@@ -71,27 +71,56 @@ run Dry stk p = pure ()
 data StkInput
   = Number Integer
   | Add
+  | Subtract
+  | Multiply
+  | Negate
+  | Discard
 
 strToInput : String -> Maybe StkInput
 strToInput "" = Nothing
 strToInput "add" = Just Add
+strToInput "subtract" = Just Subtract
+strToInput "multiply" = Just Multiply
+strToInput "negate" = Just Negate
+strToInput "discard" = Just Discard
 strToInput x =
   if all isDigit (unpack x)
     then Just . Number $ cast x
     else Nothing
 
 mutual
-  tryAdd : StackIO height
-  tryAdd {height = (S (S k))} = do
+  tryDef2 : (Integer -> Integer -> Integer) -> StackIO height
+  tryDef2 f {height = (S (S k))} = do
     val1 <- Pop
     val2 <- Pop
-    let res = val1 + val2
+    let res = f val1 val2
     Push res
     PutStr $ "Took " ++ show val1 ++ "off stack.\n"
     PutStr $ "Took " ++ show val2 ++ "off stack.\n"
     PutStr $ "Added " ++ show res ++ "to stack.\n"
     stackCalc
-  tryAdd {height = _} = do
+  tryDef2 _ {height = _} = do
+    PutStr "Error: Not enough items on stack.\n"
+    stackCalc
+
+  tryDef1 : (Integer -> Integer) -> StackIO height
+  tryDef1 f {height = (S k)} = do
+    val1 <- Pop
+    let res = f val1
+    Push res
+    PutStr $ "Took " ++ show val1 ++ "off stack.\n"
+    PutStr $ "Added " ++ show res ++ "to stack.\n"
+    stackCalc
+  tryDef1 _ {height = _} = do
+    PutStr "Error: Not enough items on stack.\n"
+    stackCalc
+
+  tryDis : StackIO height
+  tryDis {height = (S k)} = do
+    val1 <- Pop
+    PutStr $ "Took " ++ show val1 ++ "off stack.\n"
+    stackCalc
+  tryDis {height = _} = do
     PutStr "Error: Not enough items on stack.\n"
     stackCalc
 
@@ -106,7 +135,11 @@ mutual
       Just (Number x) => do
         Push x
         stackCalc
-      Just Add => tryAdd
+      Just Add => tryDef2 (+)
+      Just Subtract => tryDef2 (-)
+      Just Multiply => tryDef2 (*)
+      Just Negate => tryDef1 (0 -)
+      Just Discard => tryDis
 
 partial
 main : IO ()
